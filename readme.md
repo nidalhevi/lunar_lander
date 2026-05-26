@@ -2,66 +2,310 @@
 
 ## Overview
 
-This project implements an **Evolutionary Algorithm (EA)** to solve the **Gymnasium LunarLander-v3** environment.
+This project implements an **Evolutionary Algorithm (EA)** to solve the **Gymnasium LunarLander-v3** environment using **neuroevolution**.
 
-Instead of using gradient-based reinforcement learning (e.g. backpropagation or Deep Q-Learning), this project evolves populations of candidate policies using:
+Instead of training the controller with gradient-based reinforcement learning, the project evolves neural-network policies directly through:
 
 * mutation,
 * crossover,
-* selection,
-* elitism.
+* tournament selection,
+* elitism,
+* adaptive mutation scheduling.
 
-The project was developed for the course:
+The project also compares the EA solution with a **Deep Q-Network (DQN)** reinforcement learning baseline implemented in `rl_lander.ipynb`.
+
+The project was developed for:
 
 > *Topics in Computational Modelling: From Information Theory to Evolutionary Models*
 
 ---
 
-# Project Goals
+# Main Features
 
-The main objective is to evolve an autonomous lunar landing controller capable of:
+## Evolutionary Algorithm Features
 
-* stabilizing the spacecraft,
-* controlling orientation,
-* reducing velocity,
-* landing safely.
+* Real-valued genome representation
+* Neuroevolution
+* Tournament selection
+* Gaussian mutation
+* Adaptive mutation scheduling
+* Uniform crossover
+* Elitism
+* Multi-seed stochastic evaluation
+* Experiment comparison framework
+* Statistical evaluation system
 
-The project also investigates:
+## Reinforcement Learning Baseline
 
-* mutation strength,
-* crossover usefulness,
-* stochastic evaluation,
-* evolutionary convergence,
-* exploration vs exploitation.
+The repository also contains:
+
+```text
+rl_lander.ipynb
+```
+
+which implements a Deep Q-Network (DQN) LunarLander agent based on the Tutorial Horizon implementation.
+
+This allows direct comparison between:
+
+* Evolutionary Optimization,
+* Reinforcement Learning.
 
 ---
 
-# Evolutionary Computing Concepts Used
+# Environment
 
-The implementation follows classical Evolutionary Algorithm principles:
+## LunarLander-v3
 
-| EA Concept         | Implementation                |
-| ------------------ | ----------------------------- |
-| Individual         | Neural-network policy         |
-| Genome             | Vector of real-valued weights |
-| Population         | List of genomes               |
-| Fitness            | Average LunarLander reward    |
-| Mutation           | Gaussian perturbation         |
-| Recombination      | Uniform crossover             |
-| Parent selection   | Tournament selection          |
-| Survivor selection | Elitism                       |
-| Evolutionary cycle | Generational replacement      |
+Observation space:
 
-The project is best described as a hybrid:
+```text
+8 continuous values
+```
 
-* **Evolution Strategy (ES)** +
-* **Genetic Algorithm (GA)**
+Actions:
 
-because it uses:
+```text
+0 = do nothing
+1 = left engine
+2 = main engine
+3 = right engine
+```
 
-* real-valued genomes,
-* Gaussian mutation,
-* optional crossover.
+The goal is to maximize cumulative landing reward.
+
+---
+
+# Evolutionary Algorithm
+
+## Neural Network Representation
+
+The evolved policy is a neural network:
+
+```text
+8 → 32 → 4
+```
+
+where:
+
+* 8 inputs = LunarLander observations,
+* 32 hidden neurons,
+* 4 output action scores.
+
+The hidden layer uses:
+
+```python
+tanh()
+```
+
+The selected action is:
+
+```python
+argmax(action_scores)
+```
+
+---
+
+# Genome Representation
+
+Each individual is a real-valued vector containing:
+
+* input-to-hidden weights,
+* hidden biases,
+* hidden-to-output weights,
+* output biases.
+
+Genome size:
+
+```text
+420 parameters
+```
+
+---
+
+# Evolutionary Operators
+
+## Selection
+
+Tournament selection:
+
+```text
+k = 3
+```
+
+---
+
+## Mutation
+
+Gaussian mutation with mutation probability:
+
+```python
+gene += N(0, σ)
+```
+
+Mutation rate:
+
+```text
+0.10
+```
+
+---
+
+## Adaptive Mutation
+
+Mutation standard deviation decreases linearly:
+
+```text
+σ_initial = 0.30
+σ_final   = 0.03
+```
+
+This creates:
+
+* strong early exploration,
+* late-stage fine-tuning.
+
+---
+
+## Crossover
+
+Uniform crossover:
+
+* each gene independently inherited from one parent.
+
+---
+
+## Elitism
+
+Best individuals survive directly into the next generation.
+
+---
+
+# Final EA Configuration
+
+Main successful setup:
+
+| Parameter               | Value    |
+| ----------------------- | -------- |
+| Population size         | 100      |
+| Generations             | 150      |
+| Hidden neurons          | 32       |
+| Tournament size         | 3        |
+| Elite count             | 2        |
+| Mutation rate           | 0.10     |
+| Initial mutation std    | 0.30     |
+| Final mutation std      | 0.03     |
+| Episodes per evaluation | 10       |
+| Adaptive mutation       | enabled  |
+| Crossover               | optional |
+
+---
+
+# Main Results
+
+## Mutation-only EA
+
+Final results:
+
+```text
+Best-so-far fitness: 298.17
+Final average population fitness: 274.66
+```
+
+---
+
+## EA with Crossover
+
+Final results:
+
+```text
+Best-so-far fitness: 294.31
+Final average population fitness: 244.20
+```
+
+---
+
+## RL DQN Baseline
+
+The DQN model solved the environment in:
+
+```text
+615 episodes
+Average score ≈ 200
+```
+
+---
+
+# Key Findings
+
+## 1. Adaptive Mutation Was Critical
+
+Adaptive mutation scheduling dramatically improved:
+
+* convergence,
+* exploration,
+* late-stage stability.
+
+---
+
+## 2. Small Mutation Values Failed
+
+Mutation values:
+
+* `0.01`,
+* `0.05`
+
+often stagnated early.
+
+Larger adaptive mutation schedules performed much better.
+
+---
+
+## 3. Multi-Seed Evaluation Was Necessary
+
+Early versions overfit to fixed seeds.
+
+Using random evaluation seeds greatly improved:
+
+* robustness,
+* generalization.
+
+---
+
+## 4. Crossover Was Useful but Not Dominant
+
+Both:
+
+* mutation-only EA,
+* mutation + crossover EA
+
+successfully solved LunarLander.
+
+Mutation-only evolution slightly outperformed crossover in the final experiments, though crossover still produced high-performing policies.
+
+---
+
+# Reinforcement Learning Comparison
+
+## Evolutionary Algorithm
+
+Policy improvement through:
+
+* mutation,
+* selection,
+* recombination.
+
+No gradients used.
+
+---
+
+## DQN
+
+Policy improvement through:
+
+* temporal-difference learning,
+* replay memory,
+* gradient descent,
+* Bellman updates.
 
 ---
 
@@ -79,144 +323,52 @@ lunar_lander/
 │   ├── run_experiments.py
 │   ├── compare_experiments.py
 │   ├── final_evaluation.py
-│   └── crossover_experiments.py
+│   ├── crossover_experiments.py
+│   ├── plot_dqn_results.py
+│   └── plot_final_comparison.py
 │
 ├── runs/
-│   ├── experiment folders
+│   ├── mutation_only/
+│   ├── mutation_plus_crossover/
+│   ├── rl/
 │   └── summary/
+│
+├── rl_lander.ipynb
 │
 └── README.md
 ```
 
 ---
 
-# File Descriptions
+# Important Files
 
-## `env_eval.py`
+## `evolution.py`
 
-Handles interaction with Gymnasium:
+Main EA implementation:
 
-* creates the LunarLander environment,
-* runs episodes,
-* computes rewards,
-* evaluates genomes.
-
-Important functions:
-
-* `run_random_episode()`
-* `run_policy_episode()`
-* `evaluate_genome()`
+* population initialization,
+* selection,
+* mutation,
+* crossover,
+* adaptive mutation scheduling,
+* elitism,
+* training loop.
 
 ---
 
 ## `policies.py`
 
-Defines the neural-network controller and genome representation.
+Defines:
 
-Main ideas:
-
-* genomes are flat NumPy vectors,
-* genomes are decoded into neural-network weights,
-* the neural network maps observations to actions.
-
-Neural network architecture:
-
-```text
-8 observations
-→ 16 hidden neurons
-→ 4 actions
-```
-
-Also contains:
-
-* genome mutation utilities,
-* genome decoding logic.
+* neural-network architecture,
+* genome decoding,
+* policy inference.
 
 ---
 
-## `evolution.py`
+## `env_eval.py`
 
-Core evolutionary algorithm implementation.
-
-Contains:
-
-* population initialization,
-* fitness evaluation,
-* tournament selection,
-* Gaussian mutation,
-* uniform crossover,
-* elitism,
-* evolutionary training loop.
-
-Main evolutionary cycle:
-
-```text
-Initialize population
-→ Evaluate fitness
-→ Select parents
-→ Mutation / crossover
-→ Create offspring
-→ Survivor selection
-→ Repeat
-```
-
----
-
-## `render_best.py`
-
-Loads and visualizes the best evolved genome.
-
-Useful for:
-
-* qualitative analysis,
-* observing landing behavior.
-
----
-
-## `plot_results.py`
-
-Plots training curves:
-
-* generation best,
-* average population fitness,
-* overall best fitness.
-
----
-
-## `run_experiments.py`
-
-Runs mutation-strength experiments.
-
-Example tested parameters:
-
-```python
-mutation_values = [0.01, 0.05, 0.10, 0.25]
-```
-
----
-
-## `compare_experiments.py`
-
-Compares training curves across experiments.
-
-Produces:
-
-* multi-run comparison plots.
-
----
-
-## `final_evaluation.py`
-
-Evaluates saved genomes over many random seeds.
-
-Outputs:
-
-* mean reward,
-* standard deviation,
-* minimum reward,
-* maximum reward.
-
-This provides statistically meaningful evaluation.
+Runs LunarLander episodes and evaluates genomes.
 
 ---
 
@@ -225,129 +377,30 @@ This provides statistically meaningful evaluation.
 Compares:
 
 * mutation-only EA,
-* mutation + crossover EA.
+* crossover EA.
 
 ---
 
-# Neural Network Representation
+## `rl_lander.ipynb`
 
-Each genome encodes all neural-network parameters:
+DQN reinforcement learning baseline.
+
+---
+
+# Generated Figures
+
+The project generates:
+
+* EA training curves,
+* mutation comparison plots,
+* DQN learning curves,
+* EA vs DQN comparison plots.
+
+Saved in:
 
 ```text
-w1: observation → hidden
-b1: hidden biases
-w2: hidden → output
-b2: output biases
+runs/summary/
 ```
-
-Genome size:
-
-```text
-212 parameters
-```
-
----
-
-# Selection Method
-
-## Tournament Selection
-
-Procedure:
-
-1. Randomly select k individuals,
-2. Choose the fittest.
-
-Advantages:
-
-* simple,
-* efficient,
-* adjustable selection pressure.
-
----
-
-# Mutation Operator
-
-## Gaussian Mutation
-
-Mutation adds Gaussian noise:
-
-```text
-gene = gene + N(0, σ)
-```
-
-Where:
-
-* `σ` = mutation standard deviation.
-
-Mutation experiments were performed to analyze:
-
-* exploration,
-* convergence,
-* stability.
-
----
-
-# Crossover Operator
-
-## Uniform Crossover
-
-For each gene:
-
-* inherit from parent 1 OR parent 2.
-
-This allows:
-
-* recombination of useful traits,
-* increased diversity.
-
----
-
-# Fitness Function
-
-Fitness is computed as:
-
-```text
-Average total LunarLander reward over multiple episodes
-```
-
-Multiple seeds are used to reduce stochastic overfitting.
-
----
-
-# Key Findings
-
-## 1. Mutation Strength Matters
-
-Small mutation:
-
-* stable,
-* slower exploration.
-
-Large mutation:
-
-* more exploration,
-* less stability.
-
----
-
-## 2. Overfitting to Seeds
-
-Using fixed seeds during training caused policies to specialize to those environments.
-
-Solution:
-
-* randomize evaluation seeds.
-
----
-
-## 3. Crossover Effects
-
-Crossover sometimes improved:
-
-* convergence speed,
-* diversity.
-
-However, mutation-only evolution also performed reasonably well.
 
 ---
 
@@ -355,30 +408,18 @@ However, mutation-only evolution also performed reasonably well.
 
 ## Requirements
 
-Python 3.10+
-
-Install dependencies:
-
 ```bash
-pip install "gymnasium[box2d]" numpy matplotlib
+pip install gymnasium[box2d] numpy matplotlib torch
 ```
 
 ---
 
-# Running the Project
+# Running the Evolutionary Algorithm
 
 ## Train EA
 
 ```bash
 python src/evolution.py
-```
-
----
-
-## Render Best Genome
-
-```bash
-python src/render_best.py
 ```
 
 ---
@@ -391,6 +432,22 @@ python src/run_experiments.py
 
 ---
 
+## Run Crossover Experiments
+
+```bash
+python src/crossover_experiments.py
+```
+
+---
+
+## Render Best Policy
+
+```bash
+python src/render_best.py
+```
+
+---
+
 ## Compare Experiments
 
 ```bash
@@ -399,7 +456,7 @@ python src/compare_experiments.py
 
 ---
 
-## Final Evaluation
+## Final Statistical Evaluation
 
 ```bash
 python src/final_evaluation.py
@@ -407,40 +464,43 @@ python src/final_evaluation.py
 
 ---
 
-# Future Improvements
+# Running the DQN Baseline
 
-Possible future extensions:
+Open:
 
-* adaptive mutation rates,
-* self-adaptive evolution strategies,
-* larger populations,
-* deeper neural networks,
-* linear policies,
-* rule-based evolved policies,
-* novelty search,
-* multi-objective optimization,
-* parallel evaluation.
+```text
+rl_lander.ipynb
+```
+
+and execute all notebook cells.
 
 ---
 
-# Theoretical Background
+# Main Contributions
 
-This project is grounded in:
+This project demonstrates:
 
-* Evolutionary Algorithms,
-* Evolution Strategies,
-* Genetic Algorithms,
-* Neuroevolution,
-* Stochastic Optimization.
+* neuroevolution,
+* real-valued evolutionary optimization,
+* adaptive mutation scheduling,
+* stochastic policy evaluation,
+* EA vs RL comparison,
+* direct policy evolution without backpropagation.
 
-Core EA principles demonstrated:
+---
 
-* representation,
-* selection,
-* variation,
-* population management,
-* exploration/exploitation tradeoff,
-* parameter tuning.
+# Future Improvements
+
+Possible extensions:
+
+* deeper neural networks,
+* self-adaptive mutation rates,
+* novelty search,
+* parallel evaluation,
+* multi-objective optimization,
+* recurrent neural policies,
+* rule-based evolved policies,
+* hybrid EA + RL methods.
 
 ---
 
@@ -448,6 +508,6 @@ Core EA principles demonstrated:
 
 Nidal Ogur
 
-Course project:
+Course Project:
 
 > Topics in Computational Modelling: From Information Theory to Evolutionary Models
